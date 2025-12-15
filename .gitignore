@@ -1,0 +1,6 @@
+# Ignore .env files in ALL subdirectories (double star is important)
+**/.env
+
+# Systemfiles
+.DS_Store
+Thumbs.db

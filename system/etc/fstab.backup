@@ -1,0 +1,28 @@
+# /etc/fstab: static file system information.
+#
+# Use 'blkid' to print the universally unique identifier for a
+# device; this may be used with UUID= as a more robust way to name devices
+# that works even if disks are added and removed. See fstab(5).
+#
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+# / was on /dev/ubuntu-vg/ubuntu-lv during curtin installation
+/dev/disk/by-id/dm-uuid-LVM-gKBed8mChckdmRzw2xaKfeJQ8hb5d27E2QeFvRL02QKxgbVemQlJrSUJAvKz8zO6 / ext4 defaults 0 1
+# /boot was on /dev/sda2 during curtin installation
+/dev/disk/by-uuid/0205a4fc-0c55-4376-8277-b8ab10fdd99f /boot ext4 defaults 0 1
+
+# --- Custom Storage Mounts (Engineer Setup) ---
+
+# 2TB NVMe (FastData) -> Voor Docker & Cache
+UUID=9d202987-68f9-4bd8-98e9-69f2dd21cdb9  /mnt/fast    ext4  defaults,noatime,nofail  0  2
+
+# 2TB SATA (SlowData) -> Voor Archief
+UUID=20f64419-1794-4a74-b825-a6fb6c1e3651  /mnt/slow    ext4  defaults,noatime,nofail  0  2
+
+# 8TB NAS Schijf (wd-elements)
+UUID=5dfb9ab1-465c-49ca-ae05-e621075c353b  /mnt/nas     ext4  defaults,noatime,nofail  0  2
+
+# 2TB USB (Roon Music - Partition 1: ext_storbox)
+UUID=1d493bb7-e538-4f97-a765-5888e721436f  /mnt/roon    ext4  defaults,noatime,nofail  0  2
+
+# 2TB USB (Backup - Partition 2: ext_backup)
+UUID=d3e4c391-5ccc-424e-8c80-de0a52889574  /mnt/backup  ext4  defaults,noatime,nofail  0  2
