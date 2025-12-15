@@ -1,0 +1,36 @@
+services:
+  samba:
+    image: dperson/samba
+    container_name: samba
+    restart: always
+    environment:
+      - TZ=Europe/Amsterdam
+      - USERID=1000
+      - GROUPID=1000
+      - WORKGROUP=WORKGROUP
+      - SHARE1=fast;/mount/fast;yes;no;no;eric;;NVMe Opslag
+      - SHARE2=slow;/mount/slow;yes;no;no;eric;;Archief Opslag
+      - SHARE3=nas;/mount/nas;yes;no;no;eric;;NAS 8TB
+      - SHARE4=backup;/mount/backup;yes;no;no;eric;;Backups
+      - SHARE5=roon;/mount/roon;yes;no;no;eric;;Roon Music
+    networks:
+      - default
+    ports:
+      - "139:139/tcp"
+      - "445:445/tcp"
+    read_only: true
+    tmpfs:
+      - /tmp
+    stdin_open: true
+    tty: true
+    volumes:
+      - /mnt/fast:/mount/fast
+      - /mnt/slow:/mount/slow
+      - /mnt/nas:/mount/nas
+      - /mnt/backup:/mount/backup
+      - /mnt/roon:/mount/roon
+    # Variables from .env file
+    command: '-u "${SAMBA_USER};${SAMBA_PASS}" -p'
+
+networks:
+  default:
