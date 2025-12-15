@@ -4,3 +4,7 @@
 # Systemfiles
 .DS_Store
 Thumbs.db
+
+# Pi-hole data (no versions!)
+**/etc-pihole/
+**/etc-dnsmasq.d/
