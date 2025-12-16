@@ -1,0 +1,19 @@
+services:
+  roonserver:
+    image: steefdebruijn/docker-roonserver:latest
+    container_name: roonserver
+    restart: unless-stopped
+    # Network mode host is verplicht voor Roon discovery
+    network_mode: host
+    environment:
+      - TZ=Europe/Amsterdam
+    volumes:
+      # 1. De applicatie data (buiten de repo, lokaal op VM)
+      - /home/eric/roon-data:/var/roon
+      
+      # 2. De backup locatie (AANGEPAST)
+      # Zorg dat deze map bestaat en schrijfbaar is!
+      - /mnt/backup/Roon_backup:/var/roon/RoonBackups
+      
+      # 3. De muziek bestanden
+      - /mnt/roon:/music
