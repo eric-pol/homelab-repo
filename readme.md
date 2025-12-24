@@ -18,7 +18,7 @@ This is a learning experience for myself to learn the workflow of infrastructure
 └── scripts/             # All deployment logic
 
 ## Pre-prod-environment (git pull)
-Exact copy of Dev-environment pulled from github
+Exact copy of Dev-environment pulled from github used to (semi-)automatically seed/link all important files to 
 /opt/homelab-repo
 
 ## Prod-environment
