@@ -1,5 +1,5 @@
 #### Explanation of workflow of this github
-This is a learning experience for myself to learn the workflow of infrastructure as code. Just testing and apply best practices.
+This is a learning experience for myself to learn the workflow of infrastructure as code. Just testing and applying best practices.
 
 # Environment
 ## Dev-environment
