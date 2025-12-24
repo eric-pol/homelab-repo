@@ -1,55 +1,54 @@
 #### Explanation of workflow of this github
-# This is a learning experience for myself to learn the workflow of 
-# infrastructure as code. Just testing and apply best practices.
+This is a learning experience for myself to learn the workflow of infrastructure as code. Just testing and apply best practices.
 
-### Environment
+# Environment
 ## Dev-environment
-# ~/homelab-repo is where I make all changes tot the server.
-#~/homelab-repo/
-#├── docker/              # All files for /opt/docker-services
-#│   ├── samba/
-#│   ├── pihole/
-#│   └── .env (template)
-#├── system/              # All files for /etc /bron or system-root
-#│   ├── etc/
-#│   │   ├── fstab
-#│   │   └── systemd/
-#│   └── cron/
-#└── scripts/             # All deployment logic
+~/homelab-repo is where I make all changes tot the server.
+
+~/homelab-repo/
+├── docker/              # All files for /opt/docker-services
+│   ├── samba/
+│   ├── pihole/
+│   └── .env (template)
+├── system/              # All files for /etc /bron or system-root
+│   ├── etc/
+│   │   ├── fstab
+│   │   └── systemd/
+│   └── cron/
+└── scripts/             # All deployment logic
 
 ## Pre-prod-environment (git pull)
-# Exact copy of Dev-environment pulled from github
-# /opt/homelab-repo
+Exact copy of Dev-environment pulled from github
+/opt/homelab-repo
 
 ## Prod-environment
-# Symlinks to the actual files or if not possble (like with fstab) just a copy 
-# from Pre-prod environment.
+Symlinks to the actual files or if not possble (like with fstab) just a copy 
+from Pre-prod environment.
 
 
-### Workflow
-# Currently developing a workflow
+# Workflow
 
 ## 1) Development in Dev-environment
-#     - development in ~/homelab-repo
-#     - git add .
-#     - git commit -m "Commit message"
+     - development in ~/homelab-repo
+     - git add .
+     - git commit -m "Commit message"
 ## 2) git push
 ## 3) git pull in pre-prod-environment
 ## 4) Link & start
-#    4.1. Create links & overwrite old/wrong links with -f (force)
-#         sudo ln -sf /opt/homelab-repo/system/samba-docker.service /etc/systemd/system/samba-docker.service
+    4.1. Create links & overwrite old/wrong links with -f (force)
+         sudo ln -sf /opt/homelab-repo/system/samba-docker.service /etc/systemd/system/samba-docker.service
 
-#    4.2. Systemd update
-#         sudo systemctl daemon-reload
+    4.2. Systemd update
+         sudo systemctl daemon-reload
 
-#    4.3. Restart Services
-#         sudo systemctl enable --now samba-docker.service
+    4.3. Restart Services
+         sudo systemctl enable --now samba-docker.service
 
-#    4.4. Check status
-#         systemctl status samba-docker.service
+    4.4. Check status
+         systemctl status samba-docker.service
 
 
-#### Example workflow
+# Example workflow
 
 ### Step 1: Adjust Docker Compose (Hard-linking volume)
 
