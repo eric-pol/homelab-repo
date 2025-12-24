@@ -1,10 +1,29 @@
 # Ignore .env files in ALL subdirectories (double star is important)
+# --- Secrets ---
+# Ignore .env files in all subdirectories
 **/.env
 
-# Systemfiles
+# --- System ---
 .DS_Store
 Thumbs.db
 
-# Pi-hole data (no versions!)
-**/etc-pihole/
-**/etc-dnsmasq.d/
+# --- Pi-hole: Ignore databases and logs, KEEP configs ---
+# Ignore heavy databases
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.db.1
+
+# Ignore logs and temporary files
+**/dhcp.leases
+**/logrotate
+**/versions
+**/listsCache/
+
+# (Optional) Backup directories created by Pi-hole
+**/migration_backup/
+**/config_backups/
+**/gravity_backups/
+
+# Note: We do NOT ignore 'etc-pihole' and 'etc-dnsmasq.d' directories,
+# ensuring .conf, .list and .toml files are tracked in Git.
