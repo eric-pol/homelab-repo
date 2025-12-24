@@ -1,0 +1,18 @@
+[Unit]
+Description=Pi-hole Docker Service
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=eric
+Group=eric
+# Using the symlink path
+WorkingDirectory=/opt/docker-services/pihole
+
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+ExecStop=/usr/bin/docker compose down
+
+[Install]
+WantedBy=multi-user.target
