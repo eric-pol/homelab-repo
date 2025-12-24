@@ -27,3 +27,4 @@ Thumbs.db
 
 # Note: We do NOT ignore 'etc-pihole' and 'etc-dnsmasq.d' directories,
 # ensuring .conf, .list and .toml files are tracked in Git.
+docker/roon/data/
