@@ -1,55 +1,136 @@
-#### Explanation of workflow of this github
+#### Explanation of architecture & workflow of this github
 This is a learning experience for myself to learn the workflow of infrastructure as code. Just testing and applying best practices.
 
-# Environment
-## Dev-environment
-~/homelab-repo is where I make all changes tot the server.
+# EP2Infra - Home Server Infrastructure
+This repository contains the **Infrastructure as Code (IaC)** configuration for the EP2Infra server. It manages Docker containers, system configurations, and service dependencies using **Git**, **Docker Compose**, and **Systemd**.
 
-~/homelab-repo/
-├── docker/              # All files for /opt/docker-services
-│   ├── samba/
-│   ├── pihole/
-│   └── .env (template)
-├── system/              # All files for /etc /bron or system-root
-│   ├── etc/
-│   │   ├── fstab
-│   │   └── systemd/
-│   └── cron/
-└── scripts/             # All deployment logic
+## 🏗 Architecture
 
-## Pre-prod-environment (git pull)
-Exact copy of Dev-environment pulled from github used to (semi-)automatically seed/link all important files to 
-/opt/homelab-repo
+The infrastructure follows a strictly separated **Development** vs. **Production** workflow to ensure stability.
 
-## Prod-environment
-Symlinks to the actual files or if not possble (like with fstab) just a copy 
-from Pre-prod environment.
+| Role | Location | Description |
+| :--- | :--- | :--- |
+| **Source of Truth** | `GitHub` | Central repository for all configurations. |
+| **Development** | `~/homelab-repo` | Sandbox environment for editing, testing, and committing changes. |
+| **Production** | `/opt/homelab-repo` | Live environment. **Read-only**. Only updated via `git pull`. |
+| **Runtime** | `/opt/docker-services` | Symlink pointing to `/opt/homelab-repo/docker`. Used by Systemd. |
 
+## 📂 Directory Structure
 
-# Workflow
-
-## 1) Development in Dev-environment
-     - development in ~/homelab-repo
-     - git add .
-     - git commit -m "Commit message"
-## 2) git push
-## 3) git pull in pre-prod-environment
-     - if needed copy .env from Dev-environment since this is being ignored by git for security reasons (plain text passwords)
-## 4) Link & start
-    4.1. Create links & overwrite old/wrong links with -f (force)
-         sudo ln -sf /opt/homelab-repo/system/samba-docker.service /etc/systemd/system/samba-docker.service
-
-    4.2. Systemd update
-         sudo systemctl daemon-reload
-
-    4.3. Restart Services
-         sudo systemctl enable --now samba-docker.service
-
-    4.4. Check status
-         systemctl status samba-docker.service
+```text
+/opt/homelab-repo/
+├── docker/                 # Container definitions
+│   ├── pihole/             # DNS & Adblocking
+│   ├── portainer/          # Container Management
+│   ├── roon/               # Music Server (Data is excluded via .gitignore)
+│   └── samba/              # File Sharing
+├── system/                 # Host configurations
+│   ├── *.service           # Systemd unit files
+│   └── etc/                # Host specific configs (fstab, etc.)
+└── scripts/                # Maintenance & Deployment scripts
 
 
-# Example workflow
+## 🚀 Workflow
+
+### 1. Making Changes (Development)
+
+All edits happen in the home directory (`~/homelab-repo`).
+
+```bash
+cd ~/homelab-repo
+# Edit files (e.g. nano docker/pihole/docker-compose.yml)
+git add .
+git commit -m "Description of change"
+git push
+
+```
+
+### 2. Deploying Changes (Production)
+
+Log in to the server and pull the latest changes.
+
+```bash
+cd /opt/homelab-repo
+git pull
+
+# Apply changes (Restart specific service)
+sudo systemctl restart <service-name>
+
+```
+
+## 🛠 Service Management
+
+Services are managed via `systemd` to ensure they start in the correct order (after mounts/network).
+
+* **Check Status:** `systemctl status <service-name>`
+* **Start/Stop:** `sudo systemctl start <service-name>` / `sudo systemctl stop <service-name>`
+* **View Logs:** `journalctl -fu <service-name>`
+
+### Service Overview
+
+| Service | Systemd Unit | Port(s) | URL / Access | Notes |
+| --- | --- | --- | --- | --- |
+| **Samba** | `samba-docker.service` | 445 | `\\<IP>\` | Requires `/mnt` mounts to start. |
+| **Pi-hole** | `pihole-docker.service` | 53, 8080 | `http://<IP>:8080/admin` | Uses host network 53. DNS Server. |
+| **Portainer** | `portainer-docker.service` | 9443 | `https://<IP>:9443` | Container management UI. |
+| **Roon** | `roon-docker.service` | Host | Roon Remote App | Requires `/mnt/roon` & `/mnt/backup`. |
+
+## 🆘 Disaster Recovery
+
+If the server needs to be rebuilt from scratch, follow these steps:
+
+### 1. Clone Repository
+
+```bash
+sudo mkdir -p /opt/homelab-repo
+sudo chown user:user /opt/homelab-repo
+git clone [https://github.com/eric-pol/homelab-repo.git](https://github.com/eric-pol/homelab-repo.git) /opt/homelab-repo
+
+```
+
+### 2. Restore Symlinks
+
+Create the runtime link for Docker services:
+
+```bash
+sudo ln -s /opt/homelab-repo/docker /opt/docker-services
+
+```
+
+### 3. Restore Secrets & Data
+
+* **Secrets:** Copy `.env` files manually to `docker/<service>/.env` (These are not in Git).
+* **Pi-hole Data:** Restore `etc-pihole` and `etc-dnsmasq.d` to prevent starting with an empty blocklist.
+* **Roon Data:** Restore Roon Database to `/opt/homelab-repo/docker/roon/data`.
+* **Portainer Data:** Ensure the named volume `portainer_portainer_data` exists.
+
+### 4. Link & Start Services
+
+```bash
+# Link all service files
+sudo ln -sf /opt/homelab-repo/system/*.service /etc/systemd/system/
+
+# Reload Systemd
+sudo systemctl daemon-reload
+
+# Enable and Start services
+sudo systemctl enable --now samba-docker.service
+sudo systemctl enable --now pihole-docker.service
+sudo systemctl enable --now portainer-docker.service
+sudo systemctl enable --now roon-docker.service
+
+```
+
+```
+
+```
+
+
+
+
+
+
+# Example workflow 🚀
 
 ### Step 1: Adjust Docker Compose (Hard-linking volume)
 
