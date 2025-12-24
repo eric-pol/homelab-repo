@@ -1,0 +1,22 @@
+[Unit]
+Description=Samba Docker Service
+Requires=docker.service
+After=docker.service network-online.target
+# Controleer of deze paden kloppen met jouw fstab!
+RequiresMountsFor=/mnt/fast /mnt/slow /mnt/nas /mnt/backup /mnt/roon
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=eric
+Group=eric
+# Dit pad werkt dankzij de symlink die we in /opt hebben gemaakt
+WorkingDirectory=/opt/docker-services/samba
+
+# Start commando
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+# Stop commando
+ExecStop=/usr/bin/docker compose down
+
+[Install]
+WantedBy=multi-user.target
