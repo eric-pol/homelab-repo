@@ -18,7 +18,7 @@ This is a learning experience for myself to learn the workflow of infrastructure
 └── scripts/             # All deployment logic
 
 ## Pre-prod-environment (git pull)
-Exact copy of Dev-environment pulled from github
+Exact copy of Dev-environment pulled from github used to (semi-)automatically seed/link all important files to 
 /opt/homelab-repo
 
 ## Prod-environment
@@ -34,6 +34,7 @@ from Pre-prod environment.
      - git commit -m "Commit message"
 ## 2) git push
 ## 3) git pull in pre-prod-environment
+     - if needed copy .env from Dev-environment since this is being ignored by git for security reasons (plain text passwords)
 ## 4) Link & start
     4.1. Create links & overwrite old/wrong links with -f (force)
          sudo ln -sf /opt/homelab-repo/system/samba-docker.service /etc/systemd/system/samba-docker.service
