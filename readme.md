@@ -1,5 +1,5 @@
 #### Explanation of architecture & workflow of this github
-This is a learning experience for myself to learn the workflow of infrastructure as code. Just testing and applying best practices.
+This is a learning experience for myself to learn the workflow of infrastructure as code. Just reskilling myself in Linux engineering by testing and applying best practices to my homelab.
 
 # EP2Infra - Home Server Infrastructure
 This repository contains the **Infrastructure as Code (IaC)** configuration for the EP2Infra server. It manages Docker containers, system configurations, and service dependencies using **Git**, **Docker Compose**, and **Systemd**.
