@@ -80,7 +80,6 @@ Services are managed via `systemd` to ensure they start in the correct order (af
 If the server needs to be rebuilt from scratch, follow these steps:
 
 ### 1. Clone Repository
-
 ```bash
 sudo mkdir -p /opt/homelab-repo
 sudo chown user:user /opt/homelab-repo
@@ -97,14 +96,31 @@ sudo ln -s /opt/homelab-repo/docker /opt/docker-services
 
 ```
 
-### 3. Restore Secrets & Data
+### 3. Restore System Configuration (Fstab)
+
+This step is critical to mount the drives before services start.
+
+```bash
+# Backup existing default fstab
+sudo cp /etc/fstab /etc/fstab.bak
+
+# Restore fstab from repo
+sudo cp /opt/homelab-repo/system/etc/fstab /etc/fstab
+
+# Reload systemd and mount all drives
+sudo systemctl daemon-reload
+sudo mount -a
+
+```
+
+### 4. Restore Secrets & Data
 
 * **Secrets:** Copy `.env` files manually to `docker/<service>/.env` (These are not in Git).
 * **Pi-hole Data:** Restore `etc-pihole` and `etc-dnsmasq.d` to prevent starting with an empty blocklist.
 * **Roon Data:** Restore Roon Database to `/opt/homelab-repo/docker/roon/data`.
 * **Portainer Data:** Ensure the named volume `portainer_portainer_data` exists.
 
-### 4. Link & Start Services
+### 5. Link & Start Services
 
 ```bash
 # Link all service files
@@ -124,8 +140,6 @@ sudo systemctl enable --now roon-docker.service
 ```
 
 ```
-
-
 
 
 
