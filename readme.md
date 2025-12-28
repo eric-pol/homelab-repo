@@ -11,14 +11,25 @@ The infrastructure follows a strictly separated **Development** vs. **Production
 | Role | Location | Description |
 | :--- | :--- | :--- |
 | **Source of Truth** | `GitHub` | Central repository for all configurations. |
-| **Development** | `~/homelab-repo` | Sandbox environment for editing, testing, and committing changes. |
-| **Production** | `/opt/homelab-repo` | Live environment. **Read-only**. Only updated via `git pull`. |
+| **Development** | `~/homelab-repo` | Sandbox environment on Ansible control node for editing, testing, and committing changes. |
+| **Production** | `/opt/homelab-repo` | Live environment. **Read-only**. Only updated via `Ansible push`. |
 | **Runtime** | `/opt/docker-services` | Symlink pointing to `/opt/homelab-repo/docker`. Used by Systemd. |
 
 ## 📂 Directory Structure
 
 ```text
 /opt/homelab-repo/
+├── automation/ansible/
+│   ├── group_vars/
+│   │   └── all/
+│   │       └── vault.yml   # Encrypted secrets (Postgres/Keycloak passwords)
+│   ├── inventory/
+│   │   └── hosts.ini       # Defines the Managed Node (ep2infra)
+│   ├── roles/
+│   │   ├── common/         # Git sync & directory ownership
+│   │   └── keycloak/       # Docker Compose & Systemd logic
+│   ├── bootstrap.yml       # One-time setup script (creates ansible user)
+│   └── site.yml            # Main playbook for deployment
 ├── docker/                 # Container definitions
 │   ├── pihole/             # DNS & Adblocking
 │   ├── portainer/          # Container Management
@@ -30,43 +41,6 @@ The infrastructure follows a strictly separated **Development** vs. **Production
 └── scripts/                # Maintenance & Deployment scripts
 
 ```
-## 🚀 Workflow
-
-### 1. Making Changes (Development)
-
-All edits happen in the home directory (`~/homelab-repo`).
-
-```bash
-cd ~/homelab-repo
-git pull
-# Now you can edit files (e.g. nano docker/pihole/docker-compose.yml)
-
-git add .
-
-# If not automated by hook use 'gitleaks protect --staged' to check for secrets before committing
-# On my main system I added .git/hooks/pre-commit to automatically do a 'gitleaks protect --staged' when trying to commit 
-# (See pre-commit script at end of this documentation)
-
-git commit -m "Description of change"
-# In case gitleaks gives a warning but your 100% sure there is no secret you can force the commit without a gitleaks check using this command:
-# git commit -m "Description of change" --no-verify
-
-git push
-
-```
-
-### 2. Deploying Changes (Production)
-
-Log in to the server and pull the latest changes.
-
-```bash
-cd /opt/homelab-repo
-git pull
-
-# Apply changes (Restart specific service)
-sudo systemctl restart <service-name>
-
-```
 
 ## 🛠 Service Management
 
@@ -75,6 +49,97 @@ Services are managed via `systemd` to ensure they start in the correct order (af
 * **Check Status:** `systemctl status <service-name>`
 * **Start/Stop:** `sudo systemctl start <service-name>` / `sudo systemctl stop <service-name>`
 * **View Logs:** `journalctl -fu <service-name>`
+#------
+
+
+## 🤖 Infrastructure Automation (Ansible)
+
+As of late 2025, the deployment workflow has shifted from manual `git pull` operations to **Ansible**. This ensures idempotency, automates secret management via Vault, and handles system configuration (users, permissions, systemd) without manual intervention.
+
+### Directory Structure
+
+The automation logic resides in the `automation/` directory:
+
+```text
+automation/ansible/
+├── group_vars/
+│   └── all/
+│       └── vault.yml        # Encrypted secrets (Postgres/Keycloak passwords)
+├── inventory/
+│   └── hosts.ini            # Defines the Managed Node (ep2infra)
+├── roles/
+│   ├── common/              # Git sync & directory ownership
+│   └── keycloak/            # Docker Compose & Systemd logic
+├── bootstrap.yml            # One-time setup script (creates ansible user)
+└── site.yml                 # Main playbook for deployment
+
+```
+
+### 🚀 Ansible Workflow
+
+#### 1. Making Changes (Control Node)
+
+All edits happen locally on the Bluefin desktop (Control Node).
+
+1. **Edit Files:** Modify Docker configurations or Ansible roles.
+2. **Commit & Push:** Ensure changes are on GitHub (Ansible pulls from the remote repo).
+
+```bash
+cd ~/homelab-repo
+git add .
+git commit -m "Update Keycloak configuration"
+git push
+
+```
+
+#### 2. Deploying Changes (Ansible)
+
+Run the playbook from the Control Node. This connects to the server, pulls the latest code, renders templates with secrets, and restarts services if necessary.
+
+```bash
+cd ~/homelab-repo/automation/ansible
+
+# Deploy configuration
+ansible-playbook -i inventory/hosts.ini site.yml --ask-vault-pass
+
+```
+
+* **Prompts:** You will be asked for the **Vault Password** to decrypt secrets in memory.
+* **No Sudo Required:** The `ansible` user has `NOPASSWD` sudo rights on the server.
+
+### 🔐 Secret Management (Ansible Vault)
+
+Sensitive data (passwords, API keys) are never stored in plain text. They are encrypted in `group_vars/all/vault.yml`.
+
+* **View/Edit Secrets:**
+```bash
+ansible-vault edit group_vars/all/vault.yml
+
+```
+
+
+* **Create New Vault:**
+```bash
+ansible-vault create group_vars/all/vault.yml
+
+```
+
+
+
+### 🆘 Bootstrapping (New Server Setup)
+
+If the `ep2infra` VM is rebuilt, the `ansible` service user must be recreated before the main playbook can run.
+
+1. **Ensure SSH Access:** Make sure your personal SSH key is copied to the server (`ssh-copy-id eric@<IP>`).
+2. **Run Bootstrap:** This script logs in as `eric`, creates the `ansible` user, installs the SSH key, and configures sudoers.
+
+```bash
+# Requires -K to ask for the BECOME (sudo) password of user 'eric'
+ansible-playbook -i inventory/hosts.ini bootstrap.yml --ask-vault-pass -K
+
+```
+
+#---   BEWARE! TRANSFERRING TO ANSIBLE WORKFLOW! REVIEW NEEDED BELOW THIS LINE. ---
 
 ### Service Overview
 
@@ -85,7 +150,7 @@ Services are managed via `systemd` to ensure they start in the correct order (af
 | **Portainer** | `portainer-docker.service` | 9443 | `https://<IP>:9443` | Container management UI. |
 | **Roon** | `roon-docker.service` | Host | Roon Remote App | Requires `/mnt/roon` & `/mnt/backup`. |
 
-## 🆘 Disaster Recovery
+## 🆘 Disaster Recovery (ATTENTION -- Needs some changes after moving to Ansible workflow)
 
 If the server needs to be rebuilt from scratch, follow these steps:
 
@@ -93,7 +158,7 @@ If the server needs to be rebuilt from scratch, follow these steps:
 ```bash
 sudo mkdir -p /opt/homelab-repo
 sudo chown user:user /opt/homelab-repo
-git clone [https://github.com/eric-pol/homelab-repo.git](https://github.com/eric-pol/homelab-repo.git) /opt/homelab-repo
+git clone [https://github.com/eric-pol/homelab-repo.git](https://github.com/eric-pol/homelab-repo.git) /opt/homelab-repo 
 
 ```
 
@@ -152,6 +217,43 @@ sudo systemctl enable --now roon-docker.service
 ```
 
 
+## 🚀 Docker-Git Workflow (OLD - transferring to Ansible workflow now)
+
+### 1. Making Changes (Development)
+
+All edits happen in the home directory (`~/homelab-repo`).
+
+```bash
+cd ~/homelab-repo
+git pull
+# Now you can edit files (e.g. nano docker/pihole/docker-compose.yml)
+
+git add .
+
+# If not automated by hook use 'gitleaks protect --staged' to check for secrets before committing
+# On my main system I added .git/hooks/pre-commit to automatically do a 'gitleaks protect --staged' when trying to commit 
+# (See pre-commit script at end of this documentation)
+
+git commit -m "Description of change"
+# In case gitleaks gives a warning but your 100% sure there is no secret you can force the commit without a gitleaks check using this command:
+# git commit -m "Description of change" --no-verify
+
+git push
+
+```
+
+### 2. Deploying Changes (Production)
+
+Log in to the server and pull the latest changes.
+
+```bash
+cd /opt/homelab-repo
+git pull
+
+# Apply changes (Restart specific service)
+sudo systemctl restart <service-name>
+
+```
 
 
 # Example workflow 🚀
