@@ -1,0 +1,8 @@
+---
+- name: Configure Homelab Infrastructure
+  hosts: homelab
+  become: yes
+  
+  roles:
+    - common
+    - keycloak

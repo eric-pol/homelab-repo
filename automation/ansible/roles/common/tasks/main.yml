@@ -1,0 +1,9 @@
+---
+- name: "Synchronize repository from GitHub"
+  ansible.builtin.git:
+    repo: 'https://github.com/eric-pol/homelab-repo' 
+    dest: "{{ project_root }}"
+    version: main
+    force: yes
+  become: yes
+

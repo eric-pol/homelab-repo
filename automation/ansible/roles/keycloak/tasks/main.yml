@@ -1,0 +1,43 @@
+---
+# 1. Create directory structure on server (Target State)
+- name: "Ensure Keycloak docker directory exists"
+  ansible.builtin.file:
+    path: "{{ project_root }}/docker/keycloak"
+    state: directory
+    mode: '0755'
+
+# 2. Database storage on fast NVMe (according Homelab 2.0 documentation)
+- name: "Ensure Database storage on NVMe"
+  ansible.builtin.file:
+    path: "/mnt/fast/docker/keycloak/db"
+    state: directory
+    mode: '0700'
+    owner: 999
+    group: 999
+  become: yes
+
+# 3. Add Docker Compose file
+- name: "Deploy Docker Compose Template"
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ project_root }}/docker/keycloak/docker-compose.yml"
+    mode: '0640'
+  notify: Restart Keycloak
+
+# 4. Add Systemd Service file
+- name: "Deploy Systemd Service Template"
+  ansible.builtin.template:
+    src: keycloak-docker.service.j2
+    dest: "{{ project_root }}/system/keycloak-docker.service"
+    mode: '0644'
+  notify: 
+    - Link Systemd Service
+    - Restart Keycloak
+
+# 5. Check if service is running
+- name: "Ensure Systemd service is enabled"
+  ansible.builtin.systemd:
+    name: keycloak
+    enabled: yes
+    daemon_reload: yes
+  become: yes

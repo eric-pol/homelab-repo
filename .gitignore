@@ -29,3 +29,33 @@ Thumbs.db
 # Note: We do NOT ignore 'etc-pihole' and 'etc-dnsmasq.d' directories,
 # ensuring .conf, .list and .toml files are tracked in Git.
 docker/roon/data/
+
+# --- Ansible ---
+*.retry
+*.log
+*.swp
+.ansible/
+
+# --- SSH Keys (CRUCIAAL) ---
+# Created them in ~/.ssh but just to be shure:
+*.pem
+*.key
+*.pub
+id_rsa
+id_ed25519
+ansible_ed25519
+ansible_ed25519.pub
+
+# --- Keycloak Specific ---
+# Ignore generated config with passwords
+# Source code is .j2 (preserve)
+docker/keycloak/docker-compose.yml
+
+# For future development: in case Java Keystores gonna be used for certificates
+*.jks
+*.keystore
+*.truststore
+
+# If I ever gonna use 'realm export' (backup users/settings):
+# They can use secrets. Ignore json exports just to be sure.
+realm-export.json

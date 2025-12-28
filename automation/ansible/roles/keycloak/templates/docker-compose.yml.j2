@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: keycloak_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: "{{ vault_postgres_password }}"
+    volumes:
+      # Database on NVMe mount conform documentation
+      - /mnt/fast/docker/keycloak/db:/var/lib/postgresql/data
+    networks:
+      - keycloak_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: keycloak_app
+    restart: unless-stopped
+    command: start-dev --http-relative-path /auth
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: "{{ vault_postgres_password }}"
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: "{{ vault_keycloak_admin_password }}"
+      KC_PROXY: "edge"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - keycloak_net
+
+networks:
+  keycloak_net:
+    driver: bridge
