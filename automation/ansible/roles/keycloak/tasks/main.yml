@@ -1,12 +1,12 @@
 ---
-# 1. Create directory structure on server (Target State)
+# 1. Directory structure
 - name: "Ensure Keycloak docker directory exists"
   ansible.builtin.file:
     path: "{{ project_root }}/docker/keycloak"
     state: directory
     mode: '0755'
 
-# 2. Database storage on fast NVMe (according Homelab 2.0 documentation)
+# 2. Database storage
 - name: "Ensure Database storage on NVMe"
   ansible.builtin.file:
     path: "/mnt/fast/docker/keycloak/db"
@@ -16,7 +16,7 @@
     group: 999
   become: yes
 
-# 3. Add Docker Compose file
+# 3. Docker Compose File
 - name: "Deploy Docker Compose Template"
   ansible.builtin.template:
     src: docker-compose.yml.j2
@@ -24,20 +24,28 @@
     mode: '0640'
   notify: Restart Keycloak
 
-# 4. Add Systemd Service file
+# 4. Systemd Service File (Bronbestand)
 - name: "Deploy Systemd Service Template"
   ansible.builtin.template:
     src: keycloak-docker.service.j2
     dest: "{{ project_root }}/system/keycloak-docker.service"
     mode: '0644'
-  notify: 
-    - Link Systemd Service
-    - Restart Keycloak
 
-# 5. Check if service is running
-- name: "Ensure Systemd service is enabled"
+# 5. Linking (DIRECTLY NOW, not via handler)
+- name: "Link Systemd Service to /etc/systemd/system"
+  ansible.builtin.file:
+    src: "{{ project_root }}/system/keycloak-docker.service"
+    dest: "/etc/systemd/system/keycloak.service"
+    state: link
+  become: yes
+
+# 6. Enable and start service
+- name: "Ensure Keycloak service is enabled and started"
   ansible.builtin.systemd:
     name: keycloak
     enabled: yes
-    daemon_reload: yes
+    state: started
+    daemon_reload: yes  # Important: let systemd read the new link
   become: yes
+
+
