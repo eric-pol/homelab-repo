@@ -1,8 +1,20 @@
 #### Explanation of architecture & workflow of this github
 This is not a production environment and is publicly shared as a portfolio. It is a learning experience for myself to learn the workflow of infrastructure as code. I'm reskilling myself in Linux engineering by testing and applying best practices to my homelab. 
 
+## For more detailed information check 'Homelab 2.0 documentation' (only available for owner (on-premise storage))
+
 # EP2Infra - Home Server Infrastructure
 This repository contains the **Infrastructure as Code (IaC)** configuration for the EP2Infra server. It manages Docker containers, system configurations, and service dependencies using **Git**, **Docker Compose**, and **Systemd**.
+
+##Current Situation 28-12-2025: 
+1) Proxmox server (epx1): Base Hypervisor.
+2) VM100 (ep2infra): Main Infrastructure VM (Ubuntu 24.04).
+3) Samba (Docker): File Sharing.
+4) Pi-hole (Docker): DNS & Adblocking.
+5) Roon Server (Docker): Music Core.
+6) Portainer (Docker): Container Management.
+7) Keycloak (Docker): Identity Provider (IAM) with PostgreSQL.
+
 
 ## 🏗 Architecture
 
