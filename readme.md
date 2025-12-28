@@ -19,7 +19,7 @@ The infrastructure follows a strictly separated **Development** vs. **Production
 
 ```text
 /opt/homelab-repo/
-├── automation/
+├── automation/               # The automation logic
 │   └── ansible/
 │       ├── group_vars/
 │       │   └── all/
@@ -55,24 +55,7 @@ Services are managed via `systemd` to ensure they start in the correct order (af
 
 ## 🤖 Infrastructure Automation (Ansible)
 
-As of late 2025, the deployment workflow has shifted from manual `git pull` operations to **Ansible**. This ensures idempotency, automates secret management via Vault, and handles system configuration (users, permissions, systemd) without manual intervention.
-
-### Directory Structure
-
-The automation logic resides in the `automation/` directory:
-
-```text
-automation/ansible/
-├── group_vars/
-│   └── all/
-│       └── vault.yml        # Encrypted secrets (Postgres/Keycloak passwords)
-├── inventory/
-│   └── hosts.ini            # Defines the Managed Node (ep2infra)
-├── roles/
-│   ├── common/              # Git sync & directory ownership
-│   └── keycloak/            # Docker Compose & Systemd logic
-├── bootstrap.yml            # One-time setup script (creates ansible user)
-└── site.yml                 # Main playbook for deployment
+28-12-2025 the deployment workflow has shifted from manual `git pull` operations to **Ansible**. This ensures idempotency, automates secret management via Vault, and handles system configuration (users, permissions, systemd) without manual intervention.
 
 ```
 
