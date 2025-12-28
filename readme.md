@@ -1,5 +1,5 @@
 #### Explanation of architecture & workflow of this github
-This is a learning experience for myself to learn the workflow of infrastructure as code. Just reskilling myself in Linux engineering by testing and applying best practices to my homelab.
+This is not a production environment and is publicly shared as a portfolio. It is a learning experience for myself to learn the workflow of infrastructure as code. I'm reskilling myself in Linux engineering by testing and applying best practices to my homelab. 
 
 # EP2Infra - Home Server Infrastructure
 This repository contains the **Infrastructure as Code (IaC)** configuration for the EP2Infra server. It manages Docker containers, system configurations, and service dependencies using **Git**, **Docker Compose**, and **Systemd**.
@@ -38,8 +38,10 @@ All edits happen in the home directory (`~/homelab-repo`).
 
 ```bash
 cd ~/homelab-repo
+git pull
 # Edit files (e.g. nano docker/pihole/docker-compose.yml)
 git add .
+gitleaks protect --staged
 git commit -m "Description of change"
 git push
 
