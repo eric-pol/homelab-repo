@@ -1,9 +1,19 @@
 ---
+# NEW TASK: Make sure ansible user is directory owner 
+- name: "Ensure automation user owns the project directory"
+  ansible.builtin.file:
+    path: "{{ project_root }}"  # /opt/homelab-repo
+    state: directory
+    owner: "{{ ansible_user }}" # ansible
+    group: "{{ ansible_user }}" # ansible
+    recurse: yes                # Apply to all subfolders and files
+  become: yes
+
+# EXISTING TASK:
 - name: "Synchronize repository from GitHub"
   ansible.builtin.git:
-    repo: 'https://github.com/eric-pol/homelab-repo' 
+    repo: 'https://github.com/eric-pol/homelab-repo.git'
     dest: "{{ project_root }}"
     version: main
     force: yes
   become: yes
-
