@@ -19,26 +19,27 @@ The infrastructure follows a strictly separated **Development** vs. **Production
 
 ```text
 /opt/homelab-repo/
-├── automation/ansible/
-│   ├── group_vars/
-│   │   └── all/
-│   │       └── vault.yml   # Encrypted secrets (Postgres/Keycloak passwords)
-│   ├── inventory/
-│   │   └── hosts.ini       # Defines the Managed Node (ep2infra)
-│   ├── roles/
-│   │   ├── common/         # Git sync & directory ownership
-│   │   └── keycloak/       # Docker Compose & Systemd logic
-│   ├── bootstrap.yml       # One-time setup script (creates ansible user)
-│   └── site.yml            # Main playbook for deployment
-├── docker/                 # Container definitions
-│   ├── pihole/             # DNS & Adblocking
-│   ├── portainer/          # Container Management
-│   ├── roon/               # Music Server (Data is excluded via .gitignore)
-│   └── samba/              # File Sharing
-├── system/                 # Host configurations
-│   ├── *.service           # Systemd unit files
-│   └── etc/                # Host specific configs (fstab, etc.)
-└── scripts/                # Maintenance & Deployment scripts
+├── automation/
+│   └── ansible/
+│       ├── group_vars/
+│       │   └── all/
+│       │       └── vault.yml # Encrypted secrets (Postgres/Keycloak passwords)
+│       ├── inventory/
+│       │   └── hosts.ini     # Defines the Managed Node (ep2infra)
+│       ├── roles/
+│       │   ├── common/       # Git sync & directory ownership
+│       │   └── keycloak/     # Docker Compose & Systemd logic
+│       ├── bootstrap.yml     # One-time setup script (creates ansible user)
+│       └── site.yml          # Main playbook for deployment
+├── docker/                   # Container definitions
+│   ├── pihole/               # DNS & Adblocking
+│   ├── portainer/            # Container Management
+│   ├── roon/                 # Music Server (Data is excluded via .gitignore)
+│   └── samba/                # File Sharing
+├── system/                   # Host configurations
+│   ├── *.service             # Systemd unit files
+│   └── etc/                  # Host specific configs (fstab, etc.)
+└── scripts/                  # Maintenance & Deployment scripts
 
 ```
 
