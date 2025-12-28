@@ -1,7 +1,7 @@
 #### Explanation of architecture & workflow of this github
 This is not a production environment and is publicly shared as a portfolio. It is a learning experience for myself to learn the workflow of infrastructure as code. I'm reskilling myself in Linux engineering by testing and applying best practices to my homelab. 
 
-## For more detailed information check 'Homelab 2.0 documentation' (only available for owner (on-premise storage))
+#### For more detailed information: 'Homelab 2.0 documentation' (only available to owner (on-premise storage))
 
 # EP2Infra - Home Server Infrastructure
 This repository contains the **Infrastructure as Code (IaC)** configuration for the EP2Infra server. It manages Docker containers, system configurations, and service dependencies using **Git**, **Docker Compose**, and **Systemd**.
