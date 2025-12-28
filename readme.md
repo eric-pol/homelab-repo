@@ -277,26 +277,27 @@ Go to `https://<YOUR-SERVER-IP>:9443` in your browser.
 
 ## .git/hooks/pre-commit (script automatically checks for leaking secrets before commit)
 ```bash
-cat > .git/hooks/pre-commit << 'EOF'
-#!/usr/bin/env bash
+#!/bin/bash
 
-# Homebrew pad toevoegen (voor Bluefin/Linux)
+# Add Homebrew path (needed for Bluefin/Linuxbrew)
 export PATH="$PATH:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin"
 
 echo "🔒 Gitleaks: Scanning staged files..."
 
+# Check if gitleaks can be found
 if ! command -v gitleaks &> /dev/null; then
-    echo "⚠️  Gitleaks niet gevonden via hook!"
+    echo "⚠️  Gitleaks not found! Is it installed?"
+    echo "   Stop scan and proceed commit..."
     exit 0
 fi
 
-# Draai de scan
+# Run gitleaks scan
 gitleaks protect --verbose --staged
+
 exitCode=$?
 
 if [ $exitCode -eq 1 ]; then
-    echo "❌ GEVAAR: Secrets gevonden! Commit geblokkeerd."
+    echo "❌ WARNING: Secrets found! Commit blocked."
     exit 1
 fi
-EOF
 ```
