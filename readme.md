@@ -29,7 +29,7 @@ The infrastructure follows a strictly separated **Development** vs. **Production
 │   └── etc/                # Host specific configs (fstab, etc.)
 └── scripts/                # Maintenance & Deployment scripts
 
-
+```
 ## 🚀 Workflow
 
 ### 1. Making Changes (Development)
@@ -39,10 +39,18 @@ All edits happen in the home directory (`~/homelab-repo`).
 ```bash
 cd ~/homelab-repo
 git pull
-# Edit files (e.g. nano docker/pihole/docker-compose.yml)
+# Now you can edit files (e.g. nano docker/pihole/docker-compose.yml)
+
 git add .
-gitleaks protect --staged
+
+# If not automated by hook use 'gitleaks protect --staged' to check for secrets before committing
+# On my main system I added .git/hooks/pre-commit to automatically do a 'gitleaks protect --staged' when trying to commit 
+# (See pre-commit script at end of this documentation)
+
 git commit -m "Description of change"
+# In case gitleaks gives a warning but your 100% sure there is no secret you can force the commit without a gitleaks check using this command:
+# git commit -m "Description of change" --no-verify
+
 git push
 
 ```
@@ -263,3 +271,32 @@ systemctl status portainer-docker.service
 **The litmus test:**
 If the status is green:
 Go to `https://<YOUR-SERVER-IP>:9443` in your browser.
+
+
+# -------------------------------------------------------------
+
+## .git/hooks/pre-commit (script automatically checks for leaking secrets before commit)
+```bash
+cat > .git/hooks/pre-commit << 'EOF'
+#!/usr/bin/env bash
+
+# Homebrew pad toevoegen (voor Bluefin/Linux)
+export PATH="$PATH:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin"
+
+echo "🔒 Gitleaks: Scanning staged files..."
+
+if ! command -v gitleaks &> /dev/null; then
+    echo "⚠️  Gitleaks niet gevonden via hook!"
+    exit 0
+fi
+
+# Draai de scan
+gitleaks protect --verbose --staged
+exitCode=$?
+
+if [ $exitCode -eq 1 ]; then
+    echo "❌ GEVAAR: Secrets gevonden! Commit geblokkeerd."
+    exit 1
+fi
+EOF
+```
