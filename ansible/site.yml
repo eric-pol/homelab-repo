@@ -14,46 +14,46 @@
 # ==========================================
 # 2. TIER 0: Storage Configuration
 # ==========================================
-- name: Configure Storage Node
-  hosts: storage
-  become: yes
-  roles:
-    # Installs NFS Kernel Server and exports /mnt/nas
-    - role: storage_nfs
-      vars:
-        nfs_exports:
-          - "/mnt/nas 192.168.178.0/24(rw,sync,no_subtree_check)"
-          - "/mnt/backup 192.168.178.0/24(rw,sync,no_subtree_check)"
+#- name: Configure Storage Node
+#  hosts: storage
+#  become: yes
+#  roles:
+#    # Installs NFS Kernel Server and exports /mnt/nas
+#    - role: storage_nfs
+#      vars:
+#        nfs_exports:
+#          - "/mnt/nas 192.168.178.0/24(rw,sync,no_subtree_check)"
+#          - "/mnt/backup 192.168.178.0/24(rw,sync,no_subtree_check)"
 
 # ==========================================
 # 3. TIER 1 & 2: Docker Engine Setup
 # ==========================================
-- name: Install Docker Engine
-  hosts: docker_nodes
-  become: yes
-  roles:
-    - role: common  # Run common again to ensure dependencies? Usually not needed if run above.
-    - role: geerlingguy.docker  # (Or your own 'docker_host' role)
-      vars:
-        docker_users: ["eric", "ansible"]
+#- name: Install Docker Engine
+#  hosts: docker_nodes
+#  become: yes
+#  roles:
+#    - role: common  # Run common again to ensure dependencies? Usually not needed if run above.
+#    - role: geerlingguy.docker  # (Or your own 'docker_host' role)
+#      vars:
+#        docker_users: ["eric", "ansible"]
 
 # ==========================================
 # 4. TIER 1: Infrastructure Services
 # ==========================================
-- name: Deploy Core Infrastructure
-  hosts: infra
-  become: yes
-  roles:
-    # The Generic Role: Deploys a folder from ../docker/infra/X
-    - role: docker_service
-      vars:
-        service_name: pihole
-        service_path: "{{ playbook_dir }}/../docker/infra/pihole"
-    
-    - role: docker_service
-      vars:
-        service_name: keycloak
-        service_path: "{{ playbook_dir }}/../docker/infra/keycloak"
+#- name: Deploy Core Infrastructure
+#  hosts: infra
+#  become: yes
+#  roles:
+#    # The Generic Role: Deploys a folder from ../docker/infra/X
+#    - role: docker_service
+#      vars:
+#        service_name: pihole
+#        service_path: "{{ playbook_dir }}/../docker/infra/pihole"
+#    
+#    - role: docker_service
+#      vars:
+#        service_name: keycloak
+#        service_path: "{{ playbook_dir }}/../docker/infra/keycloak"
 
 # ==========================================
 # 5. TIER 2: Production Applications
