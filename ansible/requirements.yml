@@ -1,0 +1,7 @@
+---
+# ansible/requirements.yml
+
+- src: geerlingguy.docker
+  version: 7.0.1
+  # Pinning version 7.0.1 ensures stability. 
+  # This role handles the complex GPG keys and repo setup for Docker.

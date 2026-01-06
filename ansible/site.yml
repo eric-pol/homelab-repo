@@ -28,14 +28,14 @@
 # ==========================================
 # 3. TIER 1 & 2: Docker Engine Setup
 # ==========================================
-#- name: Install Docker Engine
-#  hosts: docker_nodes
-#  become: yes
-#  roles:
-#    - role: common  # Run common again to ensure dependencies? Usually not needed if run above.
-#    - role: geerlingguy.docker  # (Or your own 'docker_host' role)
-#      vars:
-#        docker_users: ["eric", "ansible"]
+- name: Install Docker Engine
+  hosts: docker_nodes
+  become: yes
+  roles:
+    - role: common  # Run common again to ensure dependencies? Usually not needed if run above.
+    - role: geerlingguy.docker  # (Or your own 'docker_host' role)
+      vars:
+        docker_users: ["eric", "ansible"]
 
 # ==========================================
 # 4. TIER 1: Infrastructure Services
