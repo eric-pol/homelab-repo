@@ -1,0 +1,55 @@
+---
+# ansible/roles/common/tasks/main.yml
+
+# 1. Basic System Packages
+- name: Install standard system utilities
+  apt:
+    name:
+      - curl
+      - git
+      - htop
+      - net-tools
+      - vim
+      - unattended-upgrades
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+# 2. User Management: Eric (Interactive User)
+- name: Ensure user 'eric' exists
+  user:
+    name: eric
+    shell: /bin/bash
+    groups: sudo
+    append: yes
+    password_lock: no
+
+# 3. User Management: Ansible (Automation User)
+- name: Ensure user 'ansible' exists
+  user:
+    name: ansible
+    shell: /bin/bash
+    groups: sudo
+    append: yes
+
+# 4. SSH Key Management
+# Note: This looks for id_ed25519.pub in your home directory on the computer running Ansible
+- name: Set authorized key for 'ansible' user
+  authorized_key:
+    user: ansible
+    state: present
+    key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
+
+- name: Set authorized key for 'eric' user
+  authorized_key:
+    user: eric
+    state: present
+    key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
+
+# 5. Sudoers Configuration
+- name: Allow 'ansible' user passwordless sudo
+  copy:
+    dest: /etc/sudoers.d/ansible
+    content: "ansible ALL=(ALL) NOPASSWD: ALL"
+    mode: '0440'
+    validate: 'visudo -cf %s'
