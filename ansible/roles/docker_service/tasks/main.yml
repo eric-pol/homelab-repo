@@ -1,0 +1,24 @@
+---
+# ansible/roles/docker_service/tasks/main.yml
+
+- name: "Ensure deployment directory exists for {{ service_name }}"
+  file:
+    path: "/opt/docker/{{ service_name }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user | default('eric') }}"
+    group: "{{ ansible_user | default('eric') }}"
+
+- name: "Copy configuration files for {{ service_name }}"
+  copy:
+    src: "{{ service_path }}/"
+    dest: "/opt/docker/{{ service_name }}/"
+    mode: '0644'
+    # Adding a trailing slash to src is crucial in Ansible copy!
+
+- name: "Start {{ service_name }} container(s)"
+  shell:
+    cmd: "docker compose up -d"
+    chdir: "/opt/docker/{{ service_name }}"
+  register: docker_output
+  changed_when: "'Created' in docker_output.stdout or 'Started' in docker_output.stdout"

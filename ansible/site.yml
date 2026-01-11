@@ -40,16 +40,16 @@
 # ==========================================
 # 4. TIER 1: Infrastructure Services
 # ==========================================
-#- name: Deploy Core Infrastructure
-#  hosts: infra
-#  become: yes
-#  roles:
-#    # The Generic Role: Deploys a folder from ../docker/infra/X
-#    - role: docker_service
-#      vars:
-#        service_name: pihole
-#        service_path: "{{ playbook_dir }}/../docker/infra/pihole"
-#    
+- name: Deploy Core Infrastructure
+  hosts: infra
+  become: yes
+  roles:
+    # The Generic Role: Deploys a folder from ../docker/infra/X
+    - role: docker_service
+      vars:
+        service_name: pihole
+        service_path: "{{ playbook_dir }}/../docker/infra/pihole"
+    
 #    - role: docker_service
 #      vars:
 #        service_name: keycloak

@@ -1,0 +1,18 @@
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    hostname: pihole
+    restart: unless-stopped
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "80:80/tcp"  # Web Interface
+    environment:
+      TZ: 'Europe/Amsterdam'
+      WEBPASSWORD: 'admin'  # Change this after first login!
+    volumes:
+      - './etc-pihole:/etc/pihole'
+      - './etc-dnsmasq.d:/etc/dnsmasq.d'
+    cap_add:
+      - NET_ADMIN # Recommended for Pi-hole functionalities
