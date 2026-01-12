@@ -43,6 +43,8 @@
 - name: Deploy Core Infrastructure
   hosts: infra
   become: yes
+
+  # 1.ROLES run first
   roles:
     # The Generic Role: Deploys a folder from ../docker/infra/X
     - role: docker_service
@@ -55,13 +57,59 @@
 #        service_name: keycloak
 #        service_path: "{{ playbook_dir }}/../docker/infra/keycloak"
 
+  # 2. TASKS run after roles
+  tasks:
+    # Firewall Configuration (UFW)
+    - name: Ensure UFW is installed
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+
+    - name: Allow SSH (Absolute Priority - Do not lock out!)
+      community.general.ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+        comment: "Management SSH Access"
+
+    - name: Allow DNS (UDP) from Home Network
+      community.general.ufw:
+        rule: allow
+        proto: udp
+        port: '53'
+        src: '192.168.178.0/24' # <-- Update if your subnet is different
+        comment: "Pi-hole DNS Requests"
+
+    - name: Allow DNS (TCP) from Home Network
+      community.general.ufw:
+        rule: allow
+        proto: tcp
+        port: '53'
+        src: '192.168.178.0/24'
+        comment: "Pi-hole DNS Requests"
+
+    - name: Allow Pi-hole Web Interface (Home Network Only)
+      community.general.ufw:
+        rule: allow
+        proto: tcp
+        port: '80'
+        src: '192.168.178.0/24'
+        comment: "Pi-hole Admin Dashboard"
+
+    - name: Enable UFW and set default deny
+      community.general.ufw:
+        state: enabled
+        policy: deny
+        direction: incoming
+
 # ==========================================
 # 5. TIER 2: Production Applications
 # ==========================================
 - name: Deploy Production Apps
   hosts: apps
   become: yes
-  tasks:
+
+  pre_tasks:
     # Ensure NFS mounts exist BEFORE starting Docker
     - name: Mount NAS Media
       mount:
