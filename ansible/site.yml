@@ -14,16 +14,7 @@
 # ==========================================
 # 2. TIER 0: Storage Configuration
 # ==========================================
-#- name: Configure Storage Node
-#  hosts: storage
-#  become: yes
-#  roles:
-#    # Installs NFS Kernel Server and exports /mnt/nas
-#    - role: storage_nfs
-#      vars:
-#        nfs_exports:
-#          - "/mnt/nas 192.168.178.0/24(rw,sync,no_subtree_check)"
-#          - "/mnt/backup 192.168.178.0/24(rw,sync,no_subtree_check)"
+# Moved to TrueNAS
 
 # ==========================================
 # 3. TIER 1 & 2: Docker Engine Setup
