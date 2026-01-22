@@ -1,0 +1,15 @@
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    hostname: pihole
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      TZ: 'Europe/Amsterdam'
+      WEBPASSWORD: 'admin'  # Change this after first login!
+    volumes:
+      - './etc-pihole:/etc/pihole'
+      - './etc-dnsmasq.d:/etc/dnsmasq.d'
+    cap_add:
+      - NET_ADMIN # Recommended for Pi-hole functionalities
