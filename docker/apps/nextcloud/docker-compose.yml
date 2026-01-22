@@ -1,3 +1,4 @@
+---
 services:
   nextcloud:
     image: lscr.io/linuxserver/nextcloud:latest
@@ -6,9 +7,31 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Amsterdam
+      # These variables are pulled from the .env file automatically
+      - POSTGRES_HOST=nextcloud_db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      # Optional: Auto-create admin user (some images support this)
+      # - NC_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
+      # - NC_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
     volumes:
       - ./config:/config
-      - /mnt/data:/data # Maps the NFS mount
+      - /mnt/data:/data
     ports:
       - 8080:80
+    restart: unless-stopped
+    depends_on:
+      - nextcloud_db
+
+  nextcloud_db:
+    image: postgres:15-alpine
+    container_name: nextcloud_db
+    environment:
+      # Postgres needs these to initialize the DB
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
     restart: unless-stopped
