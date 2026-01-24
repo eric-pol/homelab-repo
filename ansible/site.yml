@@ -109,11 +109,13 @@
 
   pre_tasks:
     # Ensure NFS mounts exist BEFORE starting Docker
+# --- SAFE MOUNTS (Added nofail) ---
     - name: Mount NAS Media
       mount:
         path: /mnt/media
         src: 192.168.178.20:/mnt/tank/media
         fstype: nfs
+        opts: defaults,nofail,_netdev,bg
         state: mounted
 
     - name: Mount NAS Data
@@ -121,7 +123,23 @@
         path: /mnt/data
         src: 192.168.178.20:/mnt/tank/data
         fstype: nfs
+        opts: defaults,nofail,_netdev,bg
         state: mounted
+
+    - name: Mount NAS Backups
+      mount:
+        path: /mnt/backups
+        src: 192.168.178.20:/mnt/tank/backups
+        fstype: nfs
+        opts: defaults,nofail,_netdev,bg
+        state: mounted
+    
+    - name: Ensure Roon Backup Directory Exists on NAS
+      file:
+        path: /mnt/backups/roon
+        state: directory
+        mode: '0775'
+      become: false  # Run as eric to bypass NFS Root Squash
 
   roles:
     - role: docker_service
@@ -133,3 +151,8 @@
       vars:
         service_name: nextcloud
         service_path: "{{ playbook_dir }}/../docker/apps/nextcloud"
+
+    - role: docker_service
+      vars:
+        service_name: roon
+        service_path: "{{ playbook_dir }}/../docker/apps/roon"
