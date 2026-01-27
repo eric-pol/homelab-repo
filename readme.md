@@ -3,55 +3,168 @@ This is not a production environment and is publicly shared as a portfolio. It i
 
 #### For more detailed information: 'Homelab 2.0 documentation' (only available to owner (on-premise storage))
 
-# EP2Infra - Home Server Infrastructure
-This repository contains the **Infrastructure as Code (IaC)** configuration for the EP2Infra server. It manages Docker containers, system configurations, and service dependencies using **Git**, **Docker Compose**, and **Systemd**.
+# 🏗 Homelab 3.0 Architecture
+This repository contains the **Infrastructure as Code (IaC)** configuration for the Homelab 3.0. It manages Docker containers, system configurations, and service dependencies using **Git**, **Docker Compose**, and **Systemd**.
 
-##Current Situation 28-12-2025: 
-1) Proxmox server (epx1): Base Hypervisor.
-2) VM100 (ep2infra): Main Infrastructure VM (Ubuntu 24.04).
-3) Samba (Docker): File Sharing.
-4) Pi-hole (Docker): DNS & Adblocking.
-5) Roon Server (Docker): Music Core.
-6) Portainer (Docker): Container Management.
-7) Keycloak (Docker): Identity Provider (IAM) with PostgreSQL.
+## Current Situation 27-1-2026: 
+
+## 1. Executive Summary
+
+The primary objective of this architecture is to decouple **Storage**, **Infrastructure**, **Production Applications**, and **Experimental Lab** workloads. This separation ensures that "Family Production" services (Plex, Nextcloud, Internet Access) remain stable and resilient, while providing a flexible, disposable environment for advanced engineering practice (Kubernetes, AI, Ansible).
+
+The core shift is from a **"Fat VM"** model to a **Tiered Service** model, leveraging Proxmox for compute isolation and NFS/SMB for shared storage.
 
 
-## 🏗 Architecture
+## 2. Physical Layer (Layer 1)
 
-The infrastructure follows a strictly separated **Development** vs. **Production** workflow to ensure stability.
+Node: epx1 (Proxmox VE)
 
-| Role | Location | Description |
-| :--- | :--- | :--- |
-| **Source of Truth** | `GitHub` | Central repository for all configurations. |
-| **Development** | `~/homelab-repo` | Sandbox environment on Ansible control node for editing, testing, and committing changes. |
-| **Production** | `/opt/homelab-repo` | Live environment. **Read-only**. Only updated via `Ansible push`. |
-| **Runtime** | `/opt/docker-services` | Symlink pointing to `/opt/homelab-repo/docker`. Used by Systemd. |
+The physical foundation remains unchanged but is now strictly utilized as a Hypervisor, stripping away any "host-level" container duties.
+* **CPU:** AMD Ryzen 7 7800X3D (8 Cores, 16 Threads)  \
+* **RAM:** 64 GB DDR5  \
+* **Network:** vmbr0 (Bridge) acting as the virtual switch.
+* **Storage (Host):** nvme1n1 (1TB) for Proxmox OS and VM Boot Disks (LVM-Thin). 
+* **Backups:** VM’s daily to /mnt/tanks/backups (TrueNAS), Proxmox config to local & cloud
 
-## 📂 Directory Structure
 
+## 3. Logical Topology: The 4-Tier Strategy
+
+We divide the workload into four distinct Logical Zones (VMs).
+
+
+### Tier 0: Storage Layer ("The Vault")
+
+Hostname: ep2storage (New)
+Role: Centralized Data Handler.
+OS: TrueNAS
+Configuration:
+* **Hardware:** Holds **all** physical disk passthroughs (3 x 12TB SAS with HBA controller in IT mode). Configured in RaidZ1 (ZFS).   *(Passthrough explanation: Proxmox is configured to ignore these disks and the HBA card. It passes control of the physical hardware through Proxmox directly to the TrueNAS VM. TrueNAS thinks it is running on a physical machine*.)
+* **Services:** Samba (SMB) and NFS Server. **No Application Containers.**
+* **Output:** Exports /mnt/tank/media, /mnt/tank/home, /mnt/tank/data and /mnt/backups to the network.
+* **Backups:** backups of important data to external/ cloud.
+* **Why:** This isolates the "Passthrough Risk"<sup>6</sup>. If this VM needs maintenance, apps in other tiers pause but do not crash or lose configuration. \
+
+
+
+### Tier 1: Core Infrastructure ("Utility Layer")
+
+Hostname: ep2infra-new
+Role: Critical Network Services ("Always On").
+OS: Ubuntu Server (Small VM: 2 vCPU, 4GB RAM).
+Orchestration: Docker Compose (via Ansible).
+Services:
+* **Pi-hole:** DNS & Adblocking.  
+* **Keycloak:** Identity Provider (PostgreSQL DB stored on local VM disk for speed). (ON HOLD)
+* **Traefik/Nginx:** Reverse Proxy (Entry point for all HTTP services). (ON HOLD)
+* **Why:** Separates "Internet/Login" dependency from Media apps. High Availability requirement.
+
+
+### Tier 2: Production Apps ("Family SLA")
+
+Hostname: ep2apps (New)
+Role: Trusted Daily Driver Applications.
+OS: Ubuntu Server (Medium VM: 4 vCPU, 16GB RAM).
+Orchestration: Docker Compose (via Ansible).
+Storage: Mounts /mnt/nas and /mnt/media via NFS from Tier 0.
+Services:
+* **Plex + Plexamp:** Media Streaming.  \
+* **Nextcloud:** File Cloud. (ON HOLD)
+* **Roon:** Music Core.  \
+* **Why:** Ensures stability for the family. Updates are planned. Snapshots provide instant rollback.
+
+
+### Tier 3: The Lab ("Chaos Zone")
+
+Hostname(s): ep2lab-01, k8s-master, ep2ai
+Role: Learning, Testing, Breaking.
+OS: Various (Ubuntu, RHEL, Talos Linux, etc.). 
+Orchestration: Kubernetes, Podman, Raw Binaries.
+Services:
+* **Kubernetes Cluster:** Control plane + Workers. (ON HOLD) \
+* **AI Server:** LLM testing.  \
+* **Test Distros:** RHEL/Fedora experiments.
+* **Why:** Complete isolation. You can wipe these VMs daily via Ansible without affecting the home Internet or Plex.
+
+
+## 4. Network & Storage Flow
+
+### A. Storage Architecture (NFS/SMB)
+
+Instead of internal mounts, we use network mounts.
+
+* ep2storage (IP: .20) → Exports /tank/media (NFS), /tank/data (NFS), /tank/home/ (SMB), /tank/backups (NFS/SMB).
+* ep2apps (IP: .30) → Mounts 192.168.178.20:/volume1/media to /mnt/media.
+    * Docker containers in ep2apps use volumes mapping to this local mount: -v /mnt/tank/media:/data.
+
+
+### B. Network Traffic
+
+* **Ingress:** Router (Port 80/443) → ep2infra (Reverse Proxy) → Routes traffic to ep2apps (Nextcloud/Plex) or ep2infra (Keycloak). (ON HOLD)
+* **Internal:** All VMs use ep2infra (Pi-hole) for DNS resolution.
+
+
+## 5. Management Workflow (Ansible)
+
+The Ansible workflow evolves from managing a single host to managing an **Inventory**.
+
+**Inventory File (hosts.ini):**
+Ini, TOML
+
+[storage] \
+ep2storage ansible_host=192.168.178.20 \
+ \
+[infra] \
+ep2infra_new ansible_host=192.168.178.11 \
+ \
+[apps] \
+ep2apps ansible_host=192.168.178.30 \
+ \
+[lab] \
+ep2k8s-01 ansible_host=192.168.178.40 \
+
+
+**Playbook Structure:**
+* site.yml: The master playbook.
+* roles/common: Applied to ALL (Users, SSH keys, Dotfiles).
+* roles/docker: Installs Docker engine (Applied to Infra & Apps).
+* roles/nas: Configures NFS/Samba exports (Applied to Storage).
+
+
+## 📂 Directory Structure Automation
 ```text
-/opt/homelab-repo/
-├── automation/               # The automation logic
-│   └── ansible/
-│       ├── group_vars/
-│       │   └── all/
-│       │       └── vault.yml # Encrypted secrets (Postgres/Keycloak passwords)
-│       ├── inventory/
-│       │   └── hosts.ini     # Defines the Managed Node (ep2infra)
-│       ├── roles/
-│       │   ├── common/       # Git sync & directory ownership
-│       │   └── keycloak/     # Docker Compose & Systemd logic
-│       ├── bootstrap.yml     # One-time setup script (creates ansible user)
-│       └── site.yml          # Main playbook for deployment
-├── docker/                   # Container definitions
-│   ├── pihole/               # DNS & Adblocking
-│   ├── portainer/            # Container Management
-│   ├── roon/                 # Music Server (Data is excluded via .gitignore)
-│   └── samba/                # File Sharing
-├── system/                   # Host configurations
-│   ├── *.service             # Systemd unit files
-│   └── etc/                  # Host specific configs (fstab, etc.)
-└── scripts/                  # Maintenance & Deployment scripts
+/homelab-repo/
+├── ansible
+│   ├── ansible.cfg
+│   ├── inventory
+│   │   └── hosts.ini
+│   ├── requirements.yml
+│   ├── roles
+│   │   ├── common
+│   │   │   ├── handlers
+│   │   │   │   └── main.yml
+│   │   │   └── tasks
+│   │   │       └── main.yml
+│   │   ├── docker_service
+│   │   │   └── tasks
+│   │   │       └── main.yml
+│   │   └── storage_nfs
+│   │       └── tasks
+│   └── site.yml
+├── docker
+│   ├── apps
+│   │   ├── nextcloud
+│   │   │   └── docker-compose.yml
+│   │   ├── plex
+│   │   │   └── docker-compose.yml
+│   │   └── roon
+│   │       └── docker-compose.yml
+│   └── infra
+│       └── pihole
+│           ├── docker-compose.yml
+│           └── etc-pihole
+│               ├── setupVars.conf
+│               └── tls.pem
+├── readme.md
 
 ```
 
@@ -62,23 +175,27 @@ Services are managed via `systemd` to ensure they start in the correct order (af
 * **Check Status:** `systemctl status <service-name>`
 * **Start/Stop:** `sudo systemctl start <service-name>` / `sudo systemctl stop <service-name>`
 * **View Logs:** `journalctl -fu <service-name>`
-#------
+# -------------------------------------------------------------
 
 
 ## 🤖 Infrastructure Automation (Ansible)
 
 28-12-2025 the deployment workflow has shifted from manual `git pull` operations to **Ansible**. This ensures idempotency, automates secret management via Vault, and handles system configuration (users, permissions, systemd) without manual intervention.
 
+
+### 🚀 Git & Ansible Workflow
+
+#### 1. Git workflow
 ```
-
-### 🚀 Ansible Workflow
-
 #### 1. Making Changes (Control Node)
 
 All edits happen locally on the Bluefin desktop (Control Node).
 
-1. **Edit Files:** Modify Docker configurations or Ansible roles.
-2. **Commit & Push:** Ensure changes are on GitHub (Ansible pulls from the remote repo).
+1. 'git pull' to control host
+2. 'git branch <feature/branchname>' to create safe workspace.
+3. **Edit Files:** Modify Docker configurations or Ansible playbooks.
+4. **Commit & Push:** Ensure changes are on GitHub (Ansible pulls from the remote repo).
+5. On Github merge pull request (could be done locally in case of only 1 editor)
 
 ```bash
 cd ~/homelab-repo
@@ -93,15 +210,19 @@ git push
 Run the playbook from the Control Node. This connects to the server, pulls the latest code, renders templates with secrets, and restarts services if necessary.
 
 ```bash
-cd ~/homelab-repo/automation/ansible
+cd ~/homelab-repo/ansible
 
-# Deploy configuration
+# Deploy configuration with user password
+ansible-playbook -i inventory/hosts.ini site.yml -l apps -K
+
+# In case of use Ansible password vault:
 ansible-playbook -i inventory/hosts.ini site.yml --ask-vault-pass
 
 ```
 
 * **Prompts:** You will be asked for the **Vault Password** to decrypt secrets in memory.
 * **No Sudo Required:** The `ansible` user has `NOPASSWD` sudo rights on the server.
+
 
 ### 🔐 Secret Management (Ansible Vault)
 
@@ -120,7 +241,7 @@ ansible-vault create group_vars/all/vault.yml
 
 ```
 
-
+# -------------------------------------------------------------
 
 ### 🆘 Bootstrapping (New Server Setup)
 
@@ -134,246 +255,22 @@ If the `ep2infra` VM is rebuilt, the `ansible` service user must be recreated be
 ansible-playbook -i inventory/hosts.ini bootstrap.yml --ask-vault-pass -K
 
 ```
-
-#---   BEWARE! TRANSFERRING TO ANSIBLE WORKFLOW! REVIEW NEEDED BELOW THIS LINE. ---
-
-### Service Overview
-
-| Service | Systemd Unit | Port(s) | URL / Access | Notes |
-| --- | --- | --- | --- | --- |
-| **Samba** | `samba-docker.service` | 445 | `\\<IP>\` | Requires `/mnt` mounts to start. |
-| **Pi-hole** | `pihole-docker.service` | 53, 8080 | `http://<IP>:8080/admin` | Uses host network 53. DNS Server. |
-| **Portainer** | `portainer-docker.service` | 9443 | `https://<IP>:9443` | Container management UI. |
-| **Roon** | `roon-docker.service` | Host | Roon Remote App | Requires `/mnt/roon` & `/mnt/backup`. |
+# -------------------------------------------------------------
 
 ## 🆘 Disaster Recovery (ATTENTION -- Needs some changes after moving to Ansible workflow)
 
 If the server needs to be rebuilt from scratch, follow these steps:
 
-### 1. Clone Repository
-```bash
-sudo mkdir -p /opt/homelab-repo
-sudo chown user:user /opt/homelab-repo
-git clone [https://github.com/eric-pol/homelab-repo.git](https://github.com/eric-pol/homelab-repo.git) /opt/homelab-repo 
-
-```
-
-### 2. Restore Symlinks
-
-Create the runtime link for Docker services:
-
-```bash
-sudo ln -s /opt/homelab-repo/docker /opt/docker-services
-
-```
-
-### 3. Restore System Configuration (Fstab)
-
-This step is critical to mount the drives before services start.
-
-```bash
-# Backup existing default fstab
-sudo cp /etc/fstab /etc/fstab.bak
-
-# Restore fstab from repo
-sudo cp /opt/homelab-repo/system/etc/fstab /etc/fstab
-
-# Reload systemd and mount all drives
-sudo systemctl daemon-reload
-sudo mount -a
-
-```
-
-### 4. Restore Secrets & Data
-
-* **Secrets:** Copy `.env` files manually to `docker/<service>/.env` (These are not in Git).
-* **Pi-hole Data:** Restore `etc-pihole` and `etc-dnsmasq.d` to prevent starting with an empty blocklist.
-* **Roon Data:** Restore Roon Database to `/opt/homelab-repo/docker/roon/data`.
-* **Portainer Data:** Ensure the named volume `portainer_portainer_data` exists.
-
-### 5. Link & Start Services
-
-```bash
-# Link all service files
-sudo ln -sf /opt/homelab-repo/system/*.service /etc/systemd/system/
-
-# Reload Systemd
-sudo systemctl daemon-reload
-
-# Enable and Start services
-sudo systemctl enable --now samba-docker.service
-sudo systemctl enable --now pihole-docker.service
-sudo systemctl enable --now portainer-docker.service
-sudo systemctl enable --now roon-docker.service
-
-```
-
-```
-
-```
-
-
-## 🚀 Docker-Git Workflow (OLD - transferring to Ansible workflow now)
-
-### 1. Making Changes (Development)
-
-All edits happen in the home directory (`~/homelab-repo`).
-
-```bash
-cd ~/homelab-repo
-git pull
-# Now you can edit files (e.g. nano docker/pihole/docker-compose.yml)
-
-git add .
-
-# If not automated by hook use 'gitleaks protect --staged' to check for secrets before committing
-# On my main system I added .git/hooks/pre-commit to automatically do a 'gitleaks protect --staged' when trying to commit 
-# (See pre-commit script at end of this documentation)
-
-git commit -m "Description of change"
-# In case gitleaks gives a warning but your 100% sure there is no secret you can force the commit without a gitleaks check using this command:
-# git commit -m "Description of change" --no-verify
-
-git push
-
-```
-
-### 2. Deploying Changes (Production)
-
-Log in to the server and pull the latest changes.
-
-```bash
-cd /opt/homelab-repo
-git pull
-
-# Apply changes (Restart specific service)
-sudo systemctl restart <service-name>
-
-```
-
-
-# Example workflow 🚀
-
-### Step 1: Adjust Docker Compose (Hard-linking volume)
-
-We will update the `docker-compose.yml` file to mark the volume as `external` using the specific name we just found.
-
-**Bash**
-
-```bash
-nano ~/homelab-repo/docker/portainer/docker-compose.yml
-
-```
-
-Replace the content with this version (pay attention to the volumes section at the bottom):
-
-**YAML**
-
-```yaml
-services:
-  portainer:
-    image: portainer/portainer-ce:latest
-    container_name: portainer
-    # Systemd handles restarting, but 'unless-stopped' doesn't hurt as a fallback
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - portainer_data:/data
-    ports:
-      - 9443:9443
-
-volumes:
-  portainer_data:
-    external: true
-    name: portainer_portainer_data
-
-```
-
-### Step 2: Create Systemd Service
-
-Create the service file in your repository.
-
-**Bash**
-
-```bash
-nano ~/homelab-repo/system/portainer-docker.service
-
-```
-
-Content (no fstab mounts needed here):
-
-**Ini / TOML**
-
-```ini
-[Unit]
-Description=Portainer Docker Service
-Requires=docker.service
-After=docker.service network-online.target
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-User=eric
-Group=eric
-WorkingDirectory=/opt/docker-services/portainer
-ExecStart=/usr/bin/docker compose up -d --remove-orphans
-ExecStop=/usr/bin/docker compose down
-
-[Install]
-WantedBy=multi-user.target
-
-```
-
-### Step 3: Commit & Push (Dev)
-
-Save everything to GitHub.
-
-**Bash**
-
-```bash
-cd ~/homelab-repo
-git add .
-git commit -m "Migrate Portainer: Link existing volume and add systemd service"
-git push
-
-```
-
-### Step 4: Deploy to Production
-
-Now we move to the server side (`/opt`).
-
-**Bash**
-
-```bash
-# 1. Pull the changes
-cd /opt/homelab-repo
-git pull
-
-# 2. Link the new service file
-sudo ln -sf /opt/homelab-repo/system/portainer-docker.service /etc/systemd/system/portainer-docker.service
-
-# 3. Reload systemd
-sudo systemctl daemon-reload
-
-# 4. Start Portainer
-sudo systemctl enable --now portainer-docker.service
-
-# 5. Check the status
-systemctl status portainer-docker.service
-
-```
-
-**The litmus test:**
-If the status is green:
-Go to `https://<YOUR-SERVER-IP>:9443` in your browser.
+1. Install Proxmox
+2. Setup TrueNAS VM ep2storage
+3. Restore TrueNAS config file
+4. Restore backup files for ep2infra, ep2apps, and others
 
 
 # -------------------------------------------------------------
 
-## .git/hooks/pre-commit (script automatically checks for leaking secrets before commit)
+## 🔒 Secret leaks prevention for Github
+.git/hooks/pre-commit (script automatically checks for leaking secrets before commit)
 ```bash
 #!/bin/bash
 
