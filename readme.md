@@ -3,7 +3,7 @@ This is not a production environment and is publicly shared as a portfolio. It i
 
 #### For more detailed information: 'Homelab 3.0 documentation' (only available to owner (on-premise storage))
 
-# 🏗 Homelab 3.0 Architecture
+# 🏗️ Homelab 3.0 Architecture
 This repository contains the **Infrastructure as Code (IaC)** configuration for the Homelab 3.0. It manages Docker containers, system configurations, and service dependencies using **Git**, **Docker Compose**, and **Systemd**.
 
 ## Current Situation 27-1-2026: 
