@@ -1,14 +1,14 @@
 #### Explanation of architecture & workflow of this github
 This is not a production environment and is publicly shared as a portfolio. It is a learning experience for myself to learn the workflow of infrastructure as code. I'm reskilling myself in Linux engineering by testing and applying best practices to my homelab. 
 
-#### For more detailed information: 'Homelab 2.0 documentation' (only available to owner (on-premise storage))
+#### For more detailed information: 'Homelab 3.0 documentation' (only available to owner (on-premise storage))
 
 # 🏗 Homelab 3.0 Architecture
 This repository contains the **Infrastructure as Code (IaC)** configuration for the Homelab 3.0. It manages Docker containers, system configurations, and service dependencies using **Git**, **Docker Compose**, and **Systemd**.
 
 ## Current Situation 27-1-2026: 
 
-## 1. Executive Summary
+## 1. Summary
 
 The primary objective of this architecture is to decouple **Storage**, **Infrastructure**, **Production Applications**, and **Experimental Lab** workloads. This separation ensures that "Family Production" services (Plex, Nextcloud, Internet Access) remain stable and resilient, while providing a flexible, disposable environment for advanced engineering practice (Kubernetes, AI, Ansible).
 
@@ -32,9 +32,9 @@ The physical foundation remains unchanged but is now strictly utilized as a Hype
 We divide the workload into four distinct Logical Zones (VMs).
 
 
-### Tier 0: Storage Layer ("The Vault")
+### Tier 0: Storage Layer ("The Vault") 🏛️
 
-Hostname: ep2storage (New)
+Hostname: ep2storage
 Role: Centralized Data Handler.
 OS: TrueNAS
 Configuration:
@@ -46,7 +46,7 @@ Configuration:
 
 
 
-### Tier 1: Core Infrastructure ("Utility Layer")
+### Tier 1: Core Infrastructure ("Utility Layer") 🚏
 
 Hostname: ep2infra-new
 Role: Critical Network Services ("Always On").
@@ -59,9 +59,9 @@ Services:
 * **Why:** Separates "Internet/Login" dependency from Media apps. High Availability requirement.
 
 
-### Tier 2: Production Apps ("Family SLA")
+### Tier 2: Production Apps ("Family SLA") 👨‍👩‍👦
 
-Hostname: ep2apps (New)
+Hostname: ep2apps
 Role: Trusted Daily Driver Applications.
 OS: Ubuntu Server (Medium VM: 4 vCPU, 16GB RAM).
 Orchestration: Docker Compose (via Ansible).
@@ -73,7 +73,7 @@ Services:
 * **Why:** Ensures stability for the family. Updates are planned. Snapshots provide instant rollback.
 
 
-### Tier 3: The Lab ("Chaos Zone")
+### Tier 3: The Lab ("Chaos Zone") 🌋
 
 Hostname(s): ep2lab-01, k8s-master, ep2ai
 Role: Learning, Testing, Breaking.
