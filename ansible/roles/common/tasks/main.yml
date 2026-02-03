@@ -13,6 +13,7 @@
   command: dnf config-manager --set-enabled crb
   register: crb_enable
   changed_when: "'enabled' in crb_enable.stdout"
+  failed_when: false # <--- This prevents the playbook from stopping if it fails
   when: 
     - ansible_facts['os_family'] == "RedHat"
     - ansible_facts['distribution_major_version'] == "9"
