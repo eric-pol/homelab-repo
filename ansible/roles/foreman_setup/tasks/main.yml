@@ -54,6 +54,12 @@
     - ruby:3.1
     - postgresql:15
 
+- name: Install Puppet release repo
+  dnf:
+    name: https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
+    state: present
+    disable_gpg_check: true
+
 - name: Install Foreman Installer
   dnf:
     name: foreman-installer-katello
