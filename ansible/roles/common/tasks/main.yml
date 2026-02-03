@@ -4,9 +4,18 @@
 # 1. Enable EPEL for RHEL-based systems (Required for htop, etc.)
 - name: Install EPEL repository (RHEL/CentOS)
   dnf:
-    name: epel-release
+    name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm"
     state: present
+    disable_gpg_check: true
   when: ansible_facts['os_family'] == "RedHat"
+
+- name: Enable CRB repository (RHEL 9)
+  command: dnf config-manager --set-enabled crb
+  register: crb_enable
+  changed_when: "'enabled' in crb_enable.stdout"
+  when: 
+    - ansible_facts['os_family'] == "RedHat"
+    - ansible_facts['distribution_major_version'] == "9"
 
 # 2. Basic System Packages
 - name: Install standard system utilities (Debian/Ubuntu)
