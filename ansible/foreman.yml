@@ -1,0 +1,6 @@
+- name: Deploy Foreman in Chaos Zone
+  hosts: test2rhel1.chaos.lab
+  become: true
+  roles:
+    - common
+    - foreman_setup

@@ -37,3 +37,24 @@
     - 9090/tcp
     - 5646/tcp
     - 5647/tcp
+
+- name: Install Foreman and Katello release repos
+  dnf:
+    name:
+      - https://yum.theforeman.org/releases/3.16/el9/x86_64/foreman-release.rpm
+      - https://yum.theforeman.org/katello/4.18/katello/el9/x86_64/katello-repos-latest.rpm
+    state: present
+    disable_gpg_check: true
+
+- name: Enable specific DNF modules for Foreman/Katello
+  dnf:
+    name: "@{{ item }}"
+    state: present
+  loop:
+    - ruby:3.1
+    - postgresql:15
+
+- name: Install Foreman Installer
+  dnf:
+    name: foreman-installer-katello
+    state: present
