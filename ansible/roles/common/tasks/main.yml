@@ -1,8 +1,8 @@
 ---
 # ansible/roles/common/tasks/main.yml
 
-# 1. Basic System Packages
-- name: Install standard system utilities
+# 1. Basic System Packages (OS Aware)
+- name: Install standard system utilities (Debian/Ubuntu)
   apt:
     name:
       - curl
@@ -15,27 +15,44 @@
     state: present
     update_cache: yes
     cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
 
-# 2. User Management: Eric (Interactive User)
+- name: Install standard system utilities (RHEL/CentOS)
+  dnf:
+    name:
+      - curl
+      - git
+      - htop
+      - net-tools
+      - vim-enhanced
+      - nfs-utils
+    state: present
+  when: ansible_os_family == "RedHat"
+
+# 2. Define OS-specific group names
+- name: Set OS-specific facts
+  set_fact:
+    admin_group: "{{ 'sudo' if ansible_os_family == 'Debian' else 'wheel' }}"
+
+# 3. User Management: Eric (Interactive User)
 - name: Ensure user 'eric' exists
   user:
     name: eric
     shell: /bin/bash
-    groups: sudo
+    groups: "{{ admin_group }}"
     append: yes
     password_lock: no
 
-# 3. User Management: Ansible (Automation User)
+# 4. User Management: Ansible (Automation User)
 - name: Ensure user 'ansible' exists
   user:
     name: ansible
     shell: /bin/bash
-    groups: sudo
+    groups: "{{ admin_group }}"
     append: yes
-    password_lock: yes  # <--- This is the SECURITY FIX for temp password on VM101
+    password_lock: yes
 
-# 4. SSH Key Management
-# Note: This looks for id_ed25519.pub in your home directory on the computer running Ansible
+# 5. SSH Key Management
 - name: Set authorized key for 'ansible' user
   authorized_key:
     user: ansible
@@ -48,7 +65,7 @@
     state: present
     key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
 
-# 5. Sudoers Configuration
+# 6. Sudoers Configuration
 - name: Remove legacy sudoers file (cleanup)
   file:
     path: /etc/sudoers.d/ansible
@@ -61,4 +78,4 @@
     owner: root
     group: root
     mode: '0440'
-    validate: 'visudo -cf %s'
+    validate: visudo -cf %s
