@@ -8,7 +8,7 @@
   dnf:
     name: 
       - dnf-plugins-core
-      - epel-release
+#      - epel-release    # already in added in common role
     state: present
 
 - name: Open required firewall ports for Foreman & Katello

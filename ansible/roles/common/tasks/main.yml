@@ -1,40 +1,34 @@
 ---
 # ansible/roles/common/tasks/main.yml
 
-# 1. Basic System Packages (OS Aware)
+# 1. Enable EPEL for RHEL-based systems (Required for htop, etc.)
+- name: Install EPEL repository (RHEL/CentOS)
+  dnf:
+    name: epel-release
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+# 2. Basic System Packages
 - name: Install standard system utilities (Debian/Ubuntu)
   apt:
-    name:
-      - curl
-      - git
-      - htop
-      - net-tools
-      - vim
-      - unattended-upgrades
-      - nfs-common
+    name: [curl, git, htop, net-tools, vim, unattended-upgrades, nfs-common]
     state: present
     update_cache: yes
     cache_valid_time: 3600
-  when: ansible_os_family == "Debian"
+  when: ansible_facts['os_family'] == "Debian"
 
 - name: Install standard system utilities (RHEL/CentOS)
   dnf:
-    name:
-      - curl
-      - git
-      - htop
-      - net-tools
-      - vim-enhanced
-      - nfs-utils
+    name: [curl, git, htop, net-tools, vim-enhanced, nfs-utils]
     state: present
-  when: ansible_os_family == "RedHat"
+  when: ansible_facts['os_family'] == "RedHat"
 
-# 2. Define OS-specific group names
+# 3. Define OS-specific group names
 - name: Set OS-specific facts
   set_fact:
     admin_group: "{{ 'sudo' if ansible_os_family == 'Debian' else 'wheel' }}"
 
-# 3. User Management: Eric (Interactive User)
+# 4. User Management: Eric (Interactive User)
 - name: Ensure user 'eric' exists
   user:
     name: eric
@@ -43,7 +37,7 @@
     append: yes
     password_lock: no
 
-# 4. User Management: Ansible (Automation User)
+# 5. User Management: Ansible (Automation User)
 - name: Ensure user 'ansible' exists
   user:
     name: ansible
@@ -52,7 +46,7 @@
     append: yes
     password_lock: yes
 
-# 5. SSH Key Management
+# 6. SSH Key Management
 - name: Set authorized key for 'ansible' user
   authorized_key:
     user: ansible
@@ -65,7 +59,7 @@
     state: present
     key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
 
-# 6. Sudoers Configuration
+# 7. Sudoers Configuration
 - name: Remove legacy sudoers file (cleanup)
   file:
     path: /etc/sudoers.d/ansible
