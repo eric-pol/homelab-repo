@@ -1,0 +1,39 @@
+---
+- name: Ensure the system is fully updated
+  dnf:
+    name: "*"
+    state: latest
+
+- name: Install required dependencies for Foreman repositories
+  dnf:
+    name: 
+      - dnf-plugins-core
+      - epel-release
+    state: present
+
+- name: Open required firewall ports for Foreman & Katello
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop:
+    - http
+    - https
+    - dns
+    - dhcp
+    - dhcpv6
+    - tftp
+    - puppetmaster
+
+- name: Open specific custom ports for Katello (Pulp/Capsule)
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop:
+    - 8443/tcp
+    - 9090/tcp
+    - 5646/tcp
+    - 5647/tcp
