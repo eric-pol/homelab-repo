@@ -75,15 +75,17 @@ Services:
 
 ### Tier 3: The Lab ("Chaos Zone") 🌋
 
-Hostname(s): ep2lab-01, k8s-master, ep2ai
+Hostname(s): ep2lab-01, k8s-master, ep2ai, test2rhel1, test2rhel2
 Role: Learning, Testing, Breaking.
 OS: Various (Ubuntu, RHEL, Talos Linux, etc.). 
 Orchestration: Kubernetes, Podman, Raw Binaries.
 Services:
+* **Foreman/Katello (Rhel Satellite):** test2rhel1.chaos.lab
 * **Kubernetes Cluster:** Control plane + Workers. (ON HOLD) \
 * **AI Server:** LLM testing.  \
 * **Test Distros:** RHEL/Fedora experiments.
 * **Why:** Complete isolation. You can wipe these VMs daily via Ansible without affecting the home Internet or Plex.
+
 
 
 ## 4. Network & Storage Flow
@@ -109,18 +111,49 @@ The Ansible workflow evolves from managing a single host to managing an **Invent
 
 **Inventory File (hosts.ini):**
 Ini, TOML
+```
+# Tier 0: Storage ("The Vault")
+# Holds physical disks, exports NFS.
+[storage]
+ep2storage ansible_host=192.168.178.20
 
-[storage] \
-ep2storage ansible_host=192.168.178.20 \
- \
-[infra] \
-ep2infra_new ansible_host=192.168.178.11 \
- \
-[apps] \
-ep2apps ansible_host=192.168.178.30 \
- \
-[lab] \
-ep2k8s-01 ansible_host=192.168.178.40 \
+# Tier 1: Core Infrastructure ("Always On")
+# DNS (Pi-hole), Auth (Keycloak), Reverse Proxy.
+[infra]
+ep2infra-new ansible_host=192.168.178.11
+
+# Tier 2: Production Apps ("Family SLA")
+# Plex, Nextcloud. Mounts data from Storage.
+[apps]
+ep2apps ansible_host=192.168.178.30
+
+# Tier 3: The Lab ("Chaos Zone")
+# Kubernetes, AI, Testing.
+[lab]
+#ep2k8s-01 ansible_host=192.168.178.40
+#ep2k8s-02 ansible_host=192.168.178.41
+#ep2ai     ansible_host=192.168.178.50
+# Additional free for all testing.
+[lab2]
+test2rhel1.chaos.lab ansible_host=192.168.178.60
+#ep2test1  ansible-host-192.168.178.60
+#ep2test2  ansible-host=192.168.178.61
+
+# --- Functional Groupings ---
+
+# Apply 'common' role to everything
+[all:children]
+storage
+infra
+apps
+lab
+
+# Nodes that need Docker Engine installed
+[docker_nodes:children]
+infra
+apps
+# (Lab might use Containerd/CRIO for K8s, so we exclude it from standard Docker)
+```
 
 
 **Playbook Structure:**
@@ -147,6 +180,12 @@ ep2k8s-01 ansible_host=192.168.178.40 \
 │   │   ├── docker_service
 │   │   │   └── tasks
 │   │   │       └── main.yml
+│   │   ├── foreman_setup
+│   │   │   ├── defaults
+│   │   │   ├── handlers
+│   │   │   ├── tasks
+│   │   │   │   └── main.yml
+│   │   │   └── vars
 │   │   └── storage_nfs
 │   │       └── tasks
 │   └── site.yml
@@ -257,8 +296,7 @@ ansible-playbook -i inventory/hosts.ini bootstrap.yml --ask-vault-pass -K
 ```
 # -------------------------------------------------------------
 
-## 🆘 Disaster Recovery (ATTENTION -- Needs some changes after moving to Ansible workflow)
-
+## 🆘 Disaster Recovery 
 If the server needs to be rebuilt from scratch, follow these steps:
 
 1. Install Proxmox
