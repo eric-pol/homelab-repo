@@ -1,42 +1,10 @@
 ---
-- name: Ensure the system is fully updated
+# tasks file for foreman_setup
+
+- name: Update all packages
   dnf:
     name: "*"
     state: latest
-
-- name: Install required dependencies for Foreman repositories
-  dnf:
-    name: 
-      - dnf-plugins-core
-#      - epel-release    # already in added in common role
-    state: present
-
-- name: Open required firewall ports for Foreman & Katello
-  ansible.posix.firewalld:
-    service: "{{ item }}"
-    permanent: true
-    state: enabled
-    immediate: true
-  loop:
-    - http
-    - https
-    - dns
-    - dhcp
-    - dhcpv6
-    - tftp
-    - puppetmaster
-
-- name: Open specific custom ports for Katello (Pulp/Capsule)
-  ansible.posix.firewalld:
-    port: "{{ item }}"
-    permanent: true
-    state: enabled
-    immediate: true
-  loop:
-    - 8443/tcp
-    - 9090/tcp
-    - 5646/tcp
-    - 5647/tcp
 
 - name: Install Foreman and Katello release repos
   dnf:
@@ -44,23 +12,46 @@
       - https://yum.theforeman.org/releases/3.16/el9/x86_64/foreman-release.rpm
       - https://yum.theforeman.org/katello/4.18/katello/el9/x86_64/katello-repos-latest.rpm
     state: present
-    disable_gpg_check: true
+    disable_gpg_check: yes
 
-- name: Enable specific DNF modules for Foreman/Katello
-  dnf:
-    name: "@{{ item }}"
-    state: present
-  loop:
-    - ruby:3.1
-    - postgresql:15
+- name: Enable Ruby 3.0 module stream (Required for Foreman 3.16)
+  shell: |
+    dnf module reset ruby -y
+    dnf module enable ruby:3.0 -y
+  register: ruby_module
+  changed_when: "'Complete!' in ruby_module.stdout"
 
-- name: Install Puppet release repo
-  dnf:
-    name: https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
-    state: present
-    disable_gpg_check: true
+- name: Enable PostgreSQL 15 module stream
+  shell: |
+    dnf module reset postgresql -y
+    dnf module enable postgresql:15 -y
+  register: pg_module
+  changed_when: "'Complete!' in pg_module.stdout"
 
-- name: Install Foreman Installer
+- name: Install foreman-installer
   dnf:
     name: foreman-installer-katello
     state: present
+
+# --- THE POSTGRESQL 15 FIX ---
+- name: Ensure PostgreSQL is initialized and running
+  systemd:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Grant public schema permissions on template1 for PG15 compatibility
+  become_user: postgres
+  postgresql_privs:
+    db: template1
+    privs: ALL
+    type: schema
+    objs: public
+    role: public
+
+- name: Ensure pulp user is a Superuser to bypass PG15 locks
+  become_user: postgres
+  postgresql_user:
+    name: pulp
+    role_attr_flags: SUPERUSER
+  ignore_errors: yes  # User might not exist until installer starts, but good to have
