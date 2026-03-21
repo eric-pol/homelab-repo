@@ -7,6 +7,9 @@ services:
     environment:
       - TZ=Europe/Amsterdam
     volumes:
-      - ./data:/app
+      # Connect database to persistent NFS storage
+      - /mnt/data/roon:/var/roon
+      # Backups to backup-share
       - /mnt/backups/roon:/backup
+      # Music read-only
       - /mnt/media/music:/music:ro

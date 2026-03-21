@@ -141,6 +141,14 @@
         mode: '0775'
       become: false  # Run as eric to bypass NFS Root Squash
 
+    - name: Ensure Roon Data Directory Exists on NAS
+      file:
+        path: /mnt/data/roon
+        state: directory
+        mode: '0775'
+        # Use 'become: false' to get around NFS root-squash problem
+      become: false
+
   roles:
     - role: docker_service
       vars:
